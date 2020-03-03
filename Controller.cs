@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace WassonSudoku
@@ -9,60 +10,79 @@ namespace WassonSudoku
 
     class Controller
     {
-        private static void Main(string[] args)
+        private Model _model;
+        private View _view;
+
+        public Controller(View view, Model model)
         {
-            Model sudokuBoard = new Model();
-            String input = "";
+            _view = view;
+            _model = model;
+        }
 
-            
 
-            while (input != "N")
+        //Iterate through numbers 1-9, check if they are safe, then return the first safe number
+
+
+        public bool SetupBoard(int difficulty)
+        {
+            var testBoard = new string[9, 9];
+
+            if (!_model.SolutionBoardInitializer(testBoard, 0, 0))
             {
-                Console.WriteLine("Wanna play a game? (Y/N)");
-                input = Console.ReadLine().ToUpper();
-
-                if (input == null) continue;
-                switch (input.Substring(0, 1))
-                {
-                    case "Y":
-                        sudokuBoard.SetupBoard(1);
-                        Console.WriteLine("Good... Your board is here... Let's play...");
-                        Console.WriteLine("\nHere are your options..." +
-                                          "\n1 - Place a number from 1-9. (column#, row#, insert#)" +
-                                          "\n2 - Get help. (column#, row#)" +
-                                          "\n3 - Give up." +
-                                          "\n4 - New game. Same rules." +
-                                          "\nX - Try to leave." +
-                                          "\n\n Here's your board. Remember your options. I don't repeat myself...\n\n\n\n\n");
-
-                        //sudokuBoard.ViewBoard();
-
-                        //while (input != "X")
-                        //{
-                        //    Console.
-
-
-                        //}
-                        
-                        
-                        
-                        
-                        break;
-                        
-                    case "N":
-                        Console.WriteLine("Aww... That's too bad. Next time... maybe.");
-                        break;
-
-                    default:
-                        Console.WriteLine("Answer the questions correctly...");
-                        break;
-                }
-                
+                return false;
             }
 
+            if (_model.PlayBoardInitializer(testBoard, difficulty))
+            {
+                return true;
+            }
 
-
-
+            return false;
         }
+
+        public bool UpdateBoard(Model sudoku, int column, int row, string entry)
+        {
+            string validatedEntry = ValidateEntry(entry);
+            if (validatedEntry != null)
+            {
+                if (sudoku.UpdateBoard(column, row, validatedEntry))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private string ValidateEntry(string entry)
+        {
+            try
+            {
+                var number = Int32.Parse(entry.Substring(0, 1));
+                if (number > 0 && number < 10)
+                {
+                    return number.ToString() + " ";
+                }
+                else
+                {
+                    return "--";
+                }
+            }
+            catch (FormatException)
+            {
+                return "--";
+            }
+            catch (ArgumentNullException)
+            {
+                return "--";
+            }
+        }
+
+        public void UpdateView(Model sudoku)
+        {
+            _view.ViewBoard(sudoku.PlayBoard);
+        }
+
+
     }
 }
