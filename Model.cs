@@ -11,6 +11,8 @@ namespace WassonSudoku
 
         public string[,] PlayBoard { get; private set; }
 
+        public int Hints { get; set; }
+
 
         public bool SolutionBoardInitializer(string[,] testBoard, int givenColumn, int givenRow)
         {
@@ -66,19 +68,23 @@ namespace WassonSudoku
             if (fullBoard == null) return false;
             if (fullBoard.Length == 0) return false;
 
-            var minimumKeptSquares = fullBoard.GetLength(0) + fullBoard.GetLength(1) + 1;
-            var requestedKeptSquares = (fullBoard.GetLength(0) * fullBoard.GetLength(1)) - (10 * difficulty);
-            var deleteItems = Math.Max(minimumKeptSquares, requestedKeptSquares);
-            Random coordRandom = new Random();
+            //Minimum # of squares to keep on the play board based on board dimensions
+            var minimumKeptSquares = fullBoard.GetLength(0) + fullBoard.GetLength(1) - 1;
+            //Requested # of kept squares to keep on board. Minimum of 10
+            var requestedKeptSquares = (fullBoard.GetLength(0) * fullBoard.GetLength(1)) - Math.Max((10 * difficulty), 10);
+            //The number of squares to be kept. Taking the high of requested and minimum.
+            var keepSquares = Math.Max(minimumKeptSquares, requestedKeptSquares);
+            var coordsRandom = new Random();
 
-            for (; deleteItems < fullBoard.Length; deleteItems++)
+            //keepSquares is x number less than the board total length, so remove squares until it's the same.
+            for (; keepSquares < fullBoard.Length; keepSquares++)
             {
-                var column = coordRandom.Next(0, fullBoard.GetLength(0));
-                var row = coordRandom.Next(0, fullBoard.GetLength(1));
+                var column = coordsRandom.Next(0, fullBoard.GetLength(0));
+                var row = coordsRandom.Next(0, fullBoard.GetLength(1));
                 while (fullBoard[column, row].Contains("-"))
                 {
-                    column = coordRandom.Next(0, fullBoard.GetLength(0));
-                    row = coordRandom.Next(0, fullBoard.GetLength(1));
+                    column = coordsRandom.Next(0, fullBoard.GetLength(0));
+                    row = coordsRandom.Next(0, fullBoard.GetLength(1));
                 }
                 fullBoard[column, row] = "--";
             }
@@ -91,18 +97,18 @@ namespace WassonSudoku
                     PlayBoard[colIndex, rowIndex] = fullBoard[colIndex, rowIndex];
                 }
             }
+
             return true;
         }
 
         public bool UpdateBoard(int column, int row, string entry)
         {
-            if (SolutionBoard != null && SolutionBoard.Length > 0)
-            {
-                SolutionBoard[column, row] = entry;
-                return true;
-            }
+            if (PlayBoard == null || PlayBoard.Length <= 0) return false;
+            if (PlayBoard[column, row].Contains('*')) return false;
+            
+            PlayBoard[column, row] = entry;
+            return true;
 
-            return false;
         }
 
         private bool IsSafe(string[,] testBoard, int givenColumn, int givenRow, int testNum)

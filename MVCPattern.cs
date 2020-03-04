@@ -2,7 +2,7 @@
 
 namespace WassonSudoku
 {
-    class MVCPattern
+    class MvcPattern
     {
 
         private static void Main(string[] args)
@@ -11,35 +11,15 @@ namespace WassonSudoku
             View comms = new View();
             Controller controller = new Controller(comms, sudokuBoard);
 
-            if (controller.SetupBoard(5))
+            while (comms.Introduction(controller))
             {
-                if (comms.Introduction())
-                {
-                    controller.UpdateView(sudokuBoard);
-                }
+                controller.UpdateView(sudokuBoard);
 
                 while (comms.ReceiveInput(sudokuBoard, controller))
                 {
                     controller.UpdateView(sudokuBoard);
                 }
-
-
-                
-
-
-
-
             }
-            else
-            {
-                Console.WriteLine("Failed to make board.");
-            }
-
-
-
-
-
-
 
         }
 
