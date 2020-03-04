@@ -103,23 +103,23 @@ namespace WassonSudoku
         public bool ReceiveInput(Model sudokuBoard, Controller controller)
         {
             String input = "";
-
+            Thread.Sleep(2000);
             input = Console.ReadLine()?.ToUpper();
-            if (input == null) return true;
+            if (string.IsNullOrEmpty(input)) return true;
 
             switch (input.Substring(0, 1))
             {
                 case "P":
                     Console.WriteLine("Column: ");
-                    var column = Console.Read() % sudokuBoard.SolutionBoard.GetLength(0);
+                    int column = Int32.Parse(Console.ReadLine().Substring(0, 1)) % sudokuBoard.SolutionBoard.GetLength(0);
                     Console.WriteLine("Row: ");
-                    var row = Console.Read() % sudokuBoard.SolutionBoard.GetLength(1);
+                    int row = Int32.Parse(Console.ReadLine().Substring(0, 1)) % sudokuBoard.SolutionBoard.GetLength(1);
                     Console.WriteLine("New Entry: ");
-                    var entry = Console.Read().ToString().Substring(0, 1);
+                    string entry = Console.ReadLine().Substring(0, 1);
 
                     Console.WriteLine(controller.UpdateBoard(sudokuBoard, column, row, entry)
-                        ? "Added..."
-                        : "Invalid Entry...");
+                        ? "Added...\n"
+                        : "Invalid Entry...\n");
                     break;
 
                 case "H":

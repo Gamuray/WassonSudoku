@@ -43,7 +43,15 @@ namespace WassonSudoku
                     }
                     else
                     {
-                        SolutionBoard = testBoard;
+                        SolutionBoard = new string[testBoard.GetLength(0), testBoard.GetLength(1)];
+                        for (int colIndex = 0; colIndex < testBoard.GetLength(0); colIndex++)
+                        {
+                            for (int rowIndex = 0; rowIndex < testBoard.GetLength(1); rowIndex++)
+                            {
+                                SolutionBoard[colIndex, rowIndex] = testBoard[colIndex, rowIndex];
+                            }
+                        }
+
                         return true; //if there isn't another row or column after this square, we're done, return true and cascade
                     }
 
@@ -75,7 +83,14 @@ namespace WassonSudoku
                 fullBoard[column, row] = "--";
             }
 
-            PlayBoard = fullBoard;
+            PlayBoard = new string[fullBoard.GetLength(0), fullBoard.GetLength(1)];
+            for (int colIndex = 0; colIndex < fullBoard.GetLength(0); colIndex++)
+            {
+                for (int rowIndex = 0; rowIndex < fullBoard.GetLength(1); rowIndex++)
+                {
+                    PlayBoard[colIndex, rowIndex] = fullBoard[colIndex, rowIndex];
+                }
+            }
             return true;
         }
 
