@@ -62,7 +62,7 @@ namespace WassonSudoku
                         }
 
                         //        Thread.Sleep(2000);
-                        Console.WriteLine(controller.SetupBoard(difficulty)
+                        Console.WriteLine(controller.SetupBoard(difficulty, controller)
                         ? "Your board is here... Let's play...\n\n\n"
                         : "Failed to build board...");
                         Thread.Sleep(2000);
@@ -240,7 +240,7 @@ namespace WassonSudoku
                         difficulty = int.Parse(nInputDifficulty);
                     }
 
-                    controller.SetupBoard(difficulty);
+                    controller.SetupBoard(difficulty, controller);
 
                     Thread.Sleep(2000);
                     Console.WriteLine("Here's your new board... Do better.");

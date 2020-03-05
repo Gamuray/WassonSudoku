@@ -24,7 +24,7 @@ namespace WassonSudoku
         
 
 
-        public bool SetupBoard(int difficulty)
+        public bool SetupBoard(int difficulty, Controller controller)
         {
             /*
              * Creates a blank board.
@@ -37,7 +37,7 @@ namespace WassonSudoku
              */
             var testBoard = new string[9, 9];
             _model.Hints = 10 - difficulty;
-            return _model.SolutionBoardInitializer(testBoard, 0, 0) && _model.PlayBoardInitializer(testBoard, difficulty);
+            return _model.SolutionBoardInitializer(controller, testBoard, 0, 0) && _model.PlayBoardInitializer(testBoard, difficulty);
         }
 
         public bool UpdateBoard(Model sudoku, int column, int row, string entry)
@@ -101,32 +101,150 @@ namespace WassonSudoku
 
         public bool CheckSolution(Model sudokuBoard)
         {
+            bool thisIsFine = true;
+
             for (var column = 0; column < sudokuBoard.SolutionBoard.GetLength(0); column++)
             {
                 for (var row = 0; row < sudokuBoard.SolutionBoard.GetLength(1); row++)
                 {
                     if (string.IsNullOrEmpty(sudokuBoard.PlayBoard[column, row]) || sudokuBoard.PlayBoard[column, row].Contains("-"))
                     {
-                        return false;
+                        sudokuBoard.PlayBoard[column, row] = "--"; //If there's nothing in that spot somehow, make it a blank
+                        thisIsFine = false;
+                    }
+
+                    if (sudokuBoard.PlayBoard[column, row].Contains("*"))
+                    {
+                        continue; //If it has a '*', it can't be wrong, so move along
                     }
 
                     int checkNumber;
                     try
                     {
+                        //If the first character can be parsed into a number, put it in checkNumber
                         checkNumber = int.Parse(sudokuBoard.PlayBoard[column, row].Substring(0, 1));
                     }
                     catch(FormatException)
                     {
-                        return false;
+                        //If it can't be parsed, make that entry the first character followed by a '-'
+                        sudokuBoard.PlayBoard[column, row] = sudokuBoard.PlayBoard[column, row].Substring(0,1) + "-";
+                        thisIsFine = false;
+                        continue;
                     }
 
-                    //User input is validated and formatted before putting in play board -> only care about first character
-                    if (!sudokuBoard.IsSafe(sudokuBoard.PlayBoard, column, row, checkNumber))
-                        return false;
+                    //Check the number to see if its safe. If it's not, mark it
+                    if (!IsSafe(sudokuBoard.PlayBoard, column, row, checkNumber))
+                    {
+                        sudokuBoard.PlayBoard[column, row] = sudokuBoard.PlayBoard[column, row].Substring(0, 1) + "-";
+                        thisIsFine = false;
+                    }
                 }
             }
 
+            return thisIsFine;
+        }
+
+        public bool IsSafe(string[,] testBoard, int givenColumn, int givenRow, int testNum)
+        {
+            /*
+             * Requires a board to be passed, x/y coordinates, and an entry to test.
+             * Checks if the board is null or empty.
+             * Checks if the coordinates are out of range.
+             *
+             * Compares number to entries in the same row, column and 'quadrant'
+             */
+            if (testBoard == null) return false;
+            if (testBoard.Length == 0) return false;
+
+            //Check if coordinates are out of range
+            if (givenColumn > testBoard.GetLength(0) || givenRow > testBoard.GetLength(1))
+            {
+                return false;
+            }
+
+            //Check the given column for the number
+            for (var row = 0; row < testBoard.GetLength(1); row++)
+            {
+
+                //If there's nothing there or it's the spot that we're inserting to, move along
+                if (testBoard[givenColumn, row] == null || row == givenRow) continue;
+                //If the column has a square with the same number as our test number, not safe
+                if (testBoard[givenColumn, row].StartsWith(testNum.ToString()))
+                {
+                    return false;
+                }
+            }
+
+            //Check the given row for the number
+            for (var column = 0; column < testBoard.GetLength(0); column++)
+            {
+                //If there's nothing there or it's the spot that we're inserting to, move along
+                if (testBoard[column, givenRow] == null || column == givenColumn) continue;
+                //If the row has a square with the same number as our test number, not safe
+                if (testBoard[column, givenRow].StartsWith(testNum.ToString()))
+                {
+                    return false;
+                }
+            }
+
+            //This mess figures out which quadrant the coordinates fall in. Divide by 3, round UP
+            var startColumn = 0;
+            var startRow = 0;
+            switch (Math.Ceiling((decimal)(givenColumn + 1) / 3))
+            {
+                case (1):
+                    //starting column index is 0
+                    break;
+
+                case (2):
+                    startColumn += 3;
+                    break;
+
+                case (3):
+                    startColumn += 6;
+                    break;
+
+                default:
+                    return false; //index is out of range, so obviously not safe
+            }
+            switch (Math.Ceiling((decimal)(givenRow + 1) / 3))
+            {
+                case (1):
+                    //starting row index is 0
+                    break;
+
+                case (2):
+                    startRow += 3;
+                    break;
+
+                case (3):
+                    startRow += 6;
+                    break;
+                default:
+                    return false; //index is out of range, so obviously not safe
+            }
+
+            //Check the quadrant for the number
+            //Start at the adjusted indexes for the quadrant, check the 3x3 quadrant
+            //O(n^2), but its small so meh.
+            for (var cIndex = startColumn; cIndex <= 2 + startColumn; cIndex++)
+            {
+                for (var rIndex = startRow; rIndex <= 2 + startRow; rIndex++)
+                {
+                    //If there's nothing there or it's the spot that we're inserting to, move along
+                    if (testBoard[cIndex, rIndex] == null || (cIndex == givenColumn && rIndex == givenRow)) continue;
+                    //If the 'quadrant' has a square with the same number as our test number, not safe
+                    if (testBoard[cIndex, rIndex].StartsWith(testNum.ToString()))
+                    {
+                        //IF the number is found, it's not safe
+                        return false;
+                    }
+                }
+            }
+
+            //If you get here, the number is safe, woo!
             return true;
         }
+
     }
 }
