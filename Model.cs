@@ -7,6 +7,7 @@ namespace WassonSudoku
 {
     class Model
     {
+        public int GameId { get; set; }
         public string[,] SolutionBoard { get; private set; }
         public string[,] PlayBoard { get; private set; }
         public int Hints { get; set; }

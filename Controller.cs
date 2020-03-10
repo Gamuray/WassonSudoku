@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using CityDBTest;
+using Dapper;
+using MySql.Data.MySqlClient;
 
 namespace WassonSudoku
 {
-    
+
 
 
     class Controller
@@ -21,7 +24,7 @@ namespace WassonSudoku
         }
 
 
-        
+
 
 
         public bool SetupBoard(int difficulty, Controller controller)
@@ -124,10 +127,10 @@ namespace WassonSudoku
                         //If the first character can be parsed into a number, put it in checkNumber
                         checkNumber = int.Parse(sudokuBoard.PlayBoard[column, row].Substring(0, 1));
                     }
-                    catch(FormatException)
+                    catch (FormatException)
                     {
                         //If it can't be parsed, make that entry the first character followed by a '-'
-                        sudokuBoard.PlayBoard[column, row] = sudokuBoard.PlayBoard[column, row].Substring(0,1) + "-";
+                        sudokuBoard.PlayBoard[column, row] = sudokuBoard.PlayBoard[column, row].Substring(0, 1) + "-";
                         thisIsFine = false;
                         continue;
                     }
@@ -245,6 +248,169 @@ namespace WassonSudoku
             //If you get here, the number is safe, woo!
             return true;
         }
+
+
+        //Retrieves a square from the database. Can be from the complete starting grid or from player moves
+        public List<string> GetEntry(int gameId, bool isMove, int column, int row)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    //Select rows from the a table according to whether we want moves or the original value
+                    var output = connection.Query<string>($"SELECT {(isMove ? "newEntry, MAX(moveNum)" : "entryNum")} " +
+                                                          $"FROM {(isMove ? "game_moves" : "grid_square")} " +
+                                                          $"WHERE gridID={gameId} AND " +
+                                                          $"column={column} AND " +
+                                                          $"row={row} " +
+                                                          $"{(isMove ? "GROUP BY newEntry" : "")}").ToList();
+
+                    return output;
+                }
+                catch (NullReferenceException)
+                {
+                    return null;
+                }
+
+            }
+        }
+
+
+        public List<string> ShowGames(string playerName)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    //Select rows from the a table according to whether we want moves or the original value
+                    var output = connection.Query<string>($"SELECT gridId, playerName, time_stamp " +
+                                                          $"FROM fullGrid g, players p " +
+                                                          $"WHERE g.playerID = p.playerID " +
+                                                          $"{(string.IsNullOrEmpty(playerName) ? "" : "AND p.playerName=" + playerName)}").ToList();
+
+                    return output;
+                }
+                catch (NullReferenceException)
+                {
+                    return null;
+                }
+            }
+        }
+
+        public bool GetPreviousGame(Model sudoku, int gameId, bool isResuming)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    //Retrieve original values for the gameId
+                    for (int cIndex = 0; cIndex < sudoku.SolutionBoard.GetLength(0); cIndex++)
+                    {
+                        for (int rIndex = 0; rIndex < sudoku.SolutionBoard.GetLength(1); rIndex++)
+                        {
+                            //Iterate over solution board and enter the original entries (isMove = false)
+                            string retrievedEntry = GetEntry(gameId, false, cIndex, rIndex).First();
+                            sudoku.SolutionBoard[cIndex, rIndex] = retrievedEntry;
+                            sudoku.PlayBoard[cIndex, rIndex] = retrievedEntry;
+                        }
+                    }
+
+                    //Get list of empty starting squares and place in playboard
+                    
+                    
+                    //if(isResuming){
+                    //Change play board squares to most recent entries
+                    //}
+                }
+                catch (NullReferenceException)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        //Called upon board creation, saves squares to DB
+        public bool SaveSquare(Model sudoku, bool isBlank, int column, int row, int entry)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    
+                    var output = connection.Query<string>($"REPLACE INTO {(isBlank ? "start_empty" : "grid_square")} " +
+                                                          $"VALUES ({sudoku.GameId}, {column}, {row}{(isBlank ? "" : ", " + entry)}) ").ToList();
+                }
+                catch (NullReferenceException)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        //Automatically saves player moves to the DB
+        public bool SaveMove(Model sudoku, int column, int row, int entry)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    int moveNum = 1;
+                    //Retrieve number for most recent move
+                    var output = connection.Query<string>($"SELECT MAX(moveNum)" +
+                                                          $"FROM game_moves" +
+                                                          $"WHERE gridID={sudoku.GameId}").ToList();
+
+                    //Adjust moveNum if other moves exist
+                    if (!string.IsNullOrEmpty(output[0]))
+                    {
+                        moveNum += int.Parse(output[0]);
+                    }
+
+                    //Insert move into database
+                    var input = connection.Query<string>($"INSERT INTO game_moves (gridID, columnNum, rowNum, moveNum, newEntry)" +
+                                                          $"VALUES ({sudoku.GameId}, {column}, {row}, {moveNum}, {entry})").ToList();
+                }
+                catch (NullReferenceException)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public bool SaveBoard(Model sudoku)
+        {
+            //Iterate over solution board and call SaveSquare on each square
+            for (int cIndex = 0; cIndex < sudoku.SolutionBoard.GetLength(0); cIndex++)
+            {
+                for (int rIndex = 0; rIndex < sudoku.SolutionBoard.GetLength(1); rIndex++)
+                {
+                    try
+                    {
+                        int entry = int.Parse(sudoku.SolutionBoard[cIndex, rIndex]);
+
+                        if (!SaveSquare(sudoku, false, cIndex, rIndex, entry))
+                        {
+                            return false;
+                        }
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("ERROR: Fault saving grid entry. " + cIndex + "-" + rIndex + " is not a number.");
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+
+
+
+
 
     }
 }
