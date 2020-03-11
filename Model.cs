@@ -166,10 +166,10 @@ namespace WassonSudoku
                     }
 
                     //Get list of empty starting squares and place in playboard
-                    List<string> empties = this.GetEmpties(gameId);
-                    for (int index = 0; index < empties.Count; index += 2)
+                    List<SquareCoord> empties = GetEmpties(gameId);
+                    foreach (var emptySquare in empties)
                     {
-                        sudoku.PlayBoard[index, index + 1] = "--";
+                        sudoku.PlayBoard[emptySquare.ColumnNum, emptySquare.RowNum] = "--";
                     }
 
 
@@ -223,7 +223,7 @@ namespace WassonSudoku
         }
 
         //Retrieves a square from the database. Can be from the complete starting grid or from player moves
-        public List<string> GetEntry(int gameId, bool isMove, int column, int row)
+        private List<string> GetEntry(int gameId, bool isMove, int column, int row)
         {
             using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
             {
@@ -253,7 +253,7 @@ namespace WassonSudoku
         }
 
         //Retrieves list of empty squares from database.
-        public List<SquareCoord> GetEmpties(int gameId)
+        private List<SquareCoord> GetEmpties(int gameId)
         {
             using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
             {
@@ -289,6 +289,12 @@ namespace WassonSudoku
                         {
                             return false;
                         }
+
+                        //Check this location in the play board. If it's blank 
+                        if (sudoku.PlayBoard[cIndex, rIndex] == "--")
+                        {
+                            SaveSquare(sudoku, true, cIndex, rIndex, 0);
+                        }
                     }
                     catch (FormatException)
                     {
@@ -301,7 +307,7 @@ namespace WassonSudoku
             return true;
         }
 
-        public bool SaveSquare(Model sudoku, bool isBlank, int column, int row, int entry)
+        private bool SaveSquare(Model sudoku, bool isBlank, int column, int row, int entry)
         {
             using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
             {

@@ -41,8 +41,9 @@ namespace WassonSudoku
                         {
                             Console.WriteLine("Type your choice...\n\n" +
                                               "1: Show Games\n" +
-                                              "2: Load Game (ID)\n" +
-                                              "3: New Game (Difficulty)" +
+                                              "2: Load Game from Last Move (ID)\n" +
+                                              "3: Load Game from Start (ID)" +
+                                              "4: New Game (Difficulty)" +
                                               "X: Return to intro");
 
                             input = Console.ReadLine()?.ToUpper();
@@ -63,8 +64,62 @@ namespace WassonSudoku
                                     break;
 
                                 case "2":
+                                    Console.WriteLine("Enter the ID of the game you wish to resume...");
+                                    int enteredID = 0;
+                                    try
+                                    {
+                                        enteredID = int.Parse(
+                                            Console.ReadLine() ?? throw new InvalidOperationException());
+                                    }
+                                    catch (FormatException)
+                                    {
+                                        Console.WriteLine("ERROR: Entry contained non-numeric characters.");
+                                        break;
+                                    }
+                                    catch (InvalidOperationException)
+                                    {
+                                        Console.WriteLine("ERROR: No entry detected.");
+                                        break;
+                                    }
 
+                                    if (model.GetPreviousGame(model, enteredID, true))
+                                    {
+                                        Console.WriteLine("Resuming Game " + enteredID + "...");
+                                    }
+                                    break;
 
+                                case "3":
+                                    if (model.GetPreviousGame(model, 1, false))
+                                    {
+                                        Console.WriteLine("Starting new attempt for game ");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("ERROR: Unable to locate requested game. Verify the requested ID.");
+                                    }
+                                    break;
+
+                                case "4":
+                                    try
+                                    {
+                                        Console.WriteLine("Enter your starting difficulty (1-7)...");
+
+                                        int difficulty =
+                                            int.Parse(Console.ReadLine() ?? throw new InvalidOperationException());
+
+                                        if (controller.SetupBoard(difficulty, controller))
+                                        {
+                                            Console.WriteLine("Creating New Board...");
+                                        }
+                                    }
+                                    catch (FormatException)
+                                    {
+                                        Console.WriteLine("ERROR: Entry contained non-numeric characters.");
+                                    }
+                                    catch (InvalidOperationException)
+                                    {
+                                        Console.WriteLine("ERROR: No entry detected.");
+                                    }
 
                                     break;
                             }
