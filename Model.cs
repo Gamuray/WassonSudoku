@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CityDBTest;
+using Dapper;
+using MySql.Data.MySqlClient;
 
 namespace WassonSudoku
 {
@@ -11,7 +14,6 @@ namespace WassonSudoku
         public string[,] SolutionBoard { get; private set; }
         public string[,] PlayBoard { get; private set; }
         public int Hints { get; set; }
-
 
 
         public bool SolutionBoardInitializer(Controller controller, string[,] testBoard, int givenColumn, int givenRow)
@@ -139,10 +141,231 @@ namespace WassonSudoku
             
             PlayBoard[column, row] = entry;
             return true;
-
         }
 
 
 
+
+
+        public bool GetPreviousGame(Model sudoku, int gameId, bool isResuming)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    //Retrieve original values for the gameId
+                    for (int cIndex = 0; cIndex < sudoku.SolutionBoard.GetLength(0); cIndex++)
+                    {
+                        for (int rIndex = 0; rIndex < sudoku.SolutionBoard.GetLength(1); rIndex++)
+                        {
+                            //Iterate over solution board and enter the original entries (isMove = false)
+                            string retrievedEntry = this.GetEntry(gameId, false, cIndex, rIndex).First();
+                            sudoku.SolutionBoard[cIndex, rIndex] = retrievedEntry;
+                            sudoku.PlayBoard[cIndex, rIndex] = retrievedEntry;
+                        }
+                    }
+
+                    //Get list of empty starting squares and place in playboard
+                    List<string> empties = this.GetEmpties(gameId);
+                    for (int index = 0; index < empties.Count; index += 2)
+                    {
+                        sudoku.PlayBoard[index, index + 1] = "--";
+                    }
+
+
+
+                    if(isResuming){
+                        //Change play board squares to most recent entries
+                        for (int cIndex = 0; cIndex < sudoku.SolutionBoard.GetLength(0); cIndex++)
+                        {
+                            for (int rIndex = 0; rIndex < sudoku.SolutionBoard.GetLength(1); rIndex++)
+                            {
+                                //Iterate over solution board and enter the original entries (isMove = false)
+                                string retrievedEntry = this.GetEntry(gameId, true, cIndex, rIndex).First();
+
+                                if (!string.IsNullOrEmpty(retrievedEntry))
+                                {
+                                    sudoku.PlayBoard[cIndex, rIndex] = retrievedEntry;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (NullReferenceException)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public List<GameInfo> ShowGames(string name)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    //Select rows from the a table according to whether we want moves or the original value
+                    var output = connection.Query<GameInfo>($"SELECT g.gridID, p.playerName, g.time_stamp " +
+                                                          $"FROM full_grid g, players p " +
+                                                          $"WHERE g.playerID = p.playerID " +
+                                                          (string.IsNullOrEmpty(name) ? $"" : ($"AND p.playerName=" + name))).ToList();
+
+
+
+                    return output;
+                }
+                catch (NullReferenceException)
+                {
+                    return null;
+                }
+            }
+        }
+
+        //Retrieves a square from the database. Can be from the complete starting grid or from player moves
+        public List<string> GetEntry(int gameId, bool isMove, int column, int row)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    //String for the sub-query that gets the most recent move for a grid square
+                    string mostRecentMove = "SELECT MAX(moveNum) " +
+                                            "FROM game_moves " +
+                                            "WHERE gridID=" + gameId + " " +
+                                            "AND columnNum=" + column + " " +
+                                            "AND rowNum=" + row;
+
+                    //Select rows from the a table according to whether we want moves or the original value
+                    var output = connection.Query<string>($"SELECT {(isMove ? "newEntry" : "entryNum")} " +
+                                                          $"FROM {(isMove ? "game_moves" : "grid_square")} " +
+                                                          $"WHERE gridID={gameId} AND " +
+                                                          $"{(isMove ? "AND moveNum IN (" + mostRecentMove + ")" : "")}").ToList();
+
+                    return output;
+                }
+                catch (NullReferenceException)
+                {
+                    return null;
+                }
+
+            }
+        }
+
+        //Retrieves list of empty squares from database.
+        public List<SquareCoord> GetEmpties(int gameId)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    //Select rows from the a table according to whether we want moves or the original value
+                    var output = connection.Query<SquareCoord>($"SELECT columnNum, rowNum " +
+                                                          $"FROM start_empty " +
+                                                          $"WHERE gridID={gameId}").ToList();
+
+                    return output;
+                }
+                catch (NullReferenceException)
+                {
+                    return null;
+                }
+            }
+        }
+
+        //Called upon board creation, saves squares to DB
+        public bool SaveBoard(Model sudoku)
+        {
+            //Iterate over solution board and call SaveSquare on each square
+            for (int cIndex = 0; cIndex < sudoku.SolutionBoard.GetLength(0); cIndex++)
+            {
+                for (int rIndex = 0; rIndex < sudoku.SolutionBoard.GetLength(1); rIndex++)
+                {
+                    try
+                    {
+                        int entry = int.Parse(sudoku.SolutionBoard[cIndex, rIndex]);
+
+                        if (!SaveSquare(sudoku, false, cIndex, rIndex, entry))
+                        {
+                            return false;
+                        }
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("ERROR: Fault saving grid entry. " + cIndex + "-" + rIndex + " is not a number.");
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        public bool SaveSquare(Model sudoku, bool isBlank, int column, int row, int entry)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    
+                    var output = connection.Query<string>($"REPLACE INTO {(isBlank ? "start_empty" : "grid_square")} " +
+                                                          $"VALUES ({sudoku.GameId}, {column}, {row}{(isBlank ? "" : ", " + entry)}) ").ToList();
+                }
+                catch (NullReferenceException)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        //Saves player moves to the DB
+        public bool SaveMove(Model sudoku, int column, int row, int entry)
+        {
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    int moveNum = 1;
+                    //Retrieve number for most recent move
+                    var output = connection.Query<string>($"SELECT MAX(moveNum)" +
+                                                          $"FROM game_moves" +
+                                                          $"WHERE gridID={sudoku.GameId}").ToList();
+
+                    //Adjust moveNum if other moves exist
+                    if (!string.IsNullOrEmpty(output[0]))
+                    {
+                        moveNum += int.Parse(output[0]);
+                    }
+
+                    //Insert move into database
+                    var input = connection.Query<string>($"INSERT INTO game_moves (gridID, columnNum, rowNum, moveNum, newEntry)" +
+                                                         $"VALUES ({sudoku.GameId}, {column}, {row}, {moveNum}, {entry})").ToList();
+                }
+                catch (NullReferenceException)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    struct GameInfo
+    {
+        public string GridId { get; set; }
+
+        public string PlayerName { get; set; }
+
+        public string Time_Stamp { get; set; }
+
+        public string FullInfo => $"{GridId} | {PlayerName} | {Time_Stamp}";
+    }
+
+    struct SquareCoord
+    {
+        public int ColumnNum { get; set; }
+
+        public int RowNum { get; set; }
     }
 }

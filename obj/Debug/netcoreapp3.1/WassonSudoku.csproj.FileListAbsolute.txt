@@ -36,3 +36,4 @@ E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp
 E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\runtimes\unix\lib\netcoreapp2.1\System.Data.SqlClient.dll
 E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\runtimes\win\lib\netcoreapp2.1\System.Data.SqlClient.dll
 E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\Dapper.dll
+E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\Dapper.Mapper.dll
