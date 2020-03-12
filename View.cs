@@ -252,7 +252,7 @@ namespace WassonSudoku
 
             string input = "";
 
-            Thread.Sleep(2000);
+            //Thread.Sleep(2000);
 
             Console.WriteLine("\nActions:\n" +
                               "P: Place entry (column#, row#, entry)\n" +
@@ -299,7 +299,7 @@ namespace WassonSudoku
 
                         sudokuBoard.UpdateBoard(controller, sudokuBoard, pColumn, pRow, entry);
 
-                        Thread.Sleep(2000);
+                        //Thread.Sleep(2000);
                     }
                     catch (FormatException)
                     {
@@ -336,7 +336,7 @@ namespace WassonSudoku
                     Console.WriteLine(controller.ShowHint(sudokuBoard, controller, hColumn, hRow)
                     ? "\nHint provided...\n\n\n"
                     : "\nNo hints available...\n\n\n");
-                    Thread.Sleep(2000);
+                    //Thread.Sleep(2000);
                     break;
 
                 case "G":
@@ -347,7 +347,7 @@ namespace WassonSudoku
                 case "N":
                     //new game
                     Console.WriteLine("Too hard? Let's try another one...");
-                    Thread.Sleep(2000);
+                    //Thread.Sleep(2000);
                     Console.WriteLine("Choose a difficulty level (1-7).");
 
                     var nInputDifficulty = Console.ReadLine();
@@ -360,15 +360,15 @@ namespace WassonSudoku
 
                     controller.SetupBoard(difficulty, controller);
 
-                    Thread.Sleep(2000);
+                    //Thread.Sleep(2000);
                     Console.WriteLine("Here's your new board... Do better.");
-                    Thread.Sleep(2000);
+                    //Thread.Sleep(2000);
                     break;
 
                 case "C":
                     //check completeness
                     Console.WriteLine("\nYou think you've beaten my game? I'll see about that...\n");
-                    Thread.Sleep(2000);
+                    //Thread.Sleep(2000);
 
                     //If the solution is valid
                     if (controller.CheckSolution(sudokuBoard))
@@ -379,7 +379,7 @@ namespace WassonSudoku
 
                     //If something is invalid in the solution
                     Console.WriteLine("\nYou are mistaken. Some of this is incorrect. Try again.\n\n\n");
-                    Thread.Sleep(2000);
+                    //Thread.Sleep(2000);
                     break;
 
                 case "X":

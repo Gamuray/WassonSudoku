@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using CityDBTest;
@@ -310,33 +312,77 @@ namespace WassonSudoku
         //Called upon board creation, saves squares to DB
         public bool SaveBoard(Model sudoku)
         {
-            //Iterate over solution board and call SaveSquare on each square
+            DataTable gridDataTable = new DataTable();
+            gridDataTable.Columns.Add(new DataColumn("gridID", typeof(string)));
+            gridDataTable.Columns.Add(new DataColumn("columnNum", typeof(string)));
+            gridDataTable.Columns.Add(new DataColumn("rowNum", typeof(string)));
+            gridDataTable.Columns.Add(new DataColumn("entryNum", typeof(string)));
+
+            DataTable blankDataTable = new DataTable();
+            blankDataTable.Columns.Add(new DataColumn("gridID", typeof(string)));
+            blankDataTable.Columns.Add(new DataColumn("columnNum", typeof(string)));
+            blankDataTable.Columns.Add(new DataColumn("rowNum", typeof(string)));
+
             for (int cIndex = 0; cIndex < sudoku.SolutionBoard.GetLength(0); cIndex++)
             {
                 for (int rIndex = 0; rIndex < sudoku.SolutionBoard.GetLength(1); rIndex++)
                 {
-                    try
-                    {
-                        int entry = int.Parse(sudoku.SolutionBoard[cIndex, rIndex].Substring(0, 1));
+                    //Add each square to the grid data table
+                    gridDataTable.Rows.Add(new string[]
+                        {sudoku.GameId.ToString(), cIndex.ToString(), rIndex.ToString(), sudoku.SolutionBoard[cIndex, rIndex].Substring(0, 1)});
 
-                        if (!SaveSquare(sudoku, false, cIndex, rIndex, entry))
-                        {
-                            return false;
-                        }
-
-                        //Check this location in the play board. If it's blank 
-                        if (sudoku.PlayBoard[cIndex, rIndex] == "--")
-                        {
-                            SaveSquare(sudoku, true, cIndex, rIndex, 0);
-                        }
-                    }
-                    catch (FormatException)
+                    //If the square is blank in the play board, add it to the blank data table
+                    if (sudoku.PlayBoard[cIndex, rIndex] == "--")
                     {
-                        Console.WriteLine("ERROR: Fault saving grid entry. " + cIndex + "-" + rIndex + " is not a number.");
-                        return false;
+                        blankDataTable.Rows.Add(new string[] 
+                            {sudoku.GameId.ToString(), cIndex.ToString(), rIndex.ToString()});
                     }
                 }
             }
+
+            using (SqlBulkCopy bulkCopy = new SqlBulkCopy(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                bulkCopy.DestinationTableName = "grid_square";
+                bulkCopy.WriteToServer(gridDataTable);
+
+                bulkCopy.DestinationTableName = "start_empty";
+                bulkCopy.WriteToServer(blankDataTable);
+            }
+
+
+
+
+            
+            
+            
+            
+            //Iterate over solution board and call SaveSquare on each square
+            //for (int cIndex = 0; cIndex < sudoku.SolutionBoard.GetLength(0); cIndex++)
+            //{
+            //    for (int rIndex = 0; rIndex < sudoku.SolutionBoard.GetLength(1); rIndex++)
+            //    {
+            //        try
+            //        {
+            //            int entry = int.Parse(sudoku.SolutionBoard[cIndex, rIndex].Substring(0, 1));
+
+            //            if (!SaveSquare(sudoku, false, cIndex, rIndex, entry))
+            //            {
+            //                return false;
+            //            }
+
+            //            //Check this location in the play board. If it's blank 
+            //            if (sudoku.PlayBoard[cIndex, rIndex] == "--")
+            //            {
+            //                SaveSquare(sudoku, true, cIndex, rIndex, 0);
+            //            }
+            //        }
+            //        catch (FormatException)
+            //        {
+            //            Console.WriteLine("ERROR: Fault saving grid entry. " + cIndex + "-" + rIndex + " is not a number.");
+            //            return false;
+            //        }
+            //    }
+            //}
 
             return true;
         }
@@ -347,7 +393,6 @@ namespace WassonSudoku
             {
                 try
                 {
-                    
                     var output = connection.Query<string>($"REPLACE INTO {(isBlank ? "start_empty" : "grid_square")} " +
                                                           $"VALUES ({sudoku.GameId}, {column}, {row}{(isBlank ? "" : ", " + entry)}) ").ToList();
                 }
