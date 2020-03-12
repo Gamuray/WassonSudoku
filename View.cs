@@ -9,7 +9,7 @@ namespace WassonSudoku
     class View
     {
 
-        public bool Introduction(Controller controller, Model model)
+        public bool Introduction(Controller controller, Model sudoku)
         {
             /*
              * Asks the user if they want to play.
@@ -39,12 +39,12 @@ namespace WassonSudoku
 
                         while(input!="X")
                         {
-                            Console.WriteLine("Type your choice...\n\n" +
+                            Console.WriteLine("\n\nType your choice...\n\n" +
                                               "1: Show Games\n" +
                                               "2: Load Game from Last Move (ID)\n" +
-                                              "3: Load Game from Start (ID)" +
-                                              "4: New Game (Difficulty)" +
-                                              "X: Return to intro");
+                                              "3: Load Game from Start (ID)\n" +
+                                              "4: New Game (Difficulty)\n" +
+                                              "X: Return to intro\n\n");
 
                             input = Console.ReadLine()?.ToUpper();
 
@@ -56,7 +56,7 @@ namespace WassonSudoku
                                     Console.WriteLine("\nEnter player name or press enter for all games...");
                                     name = Console.ReadLine();
 
-                                    foreach (var row in model.ShowGames(name))
+                                    foreach (var row in sudoku.ShowGames(name))
                                     {
                                         Console.WriteLine(row.FullInfo);
                                     }
@@ -65,11 +65,10 @@ namespace WassonSudoku
 
                                 case "2":
                                     Console.WriteLine("Enter the ID of the game you wish to resume...");
-                                    int enteredID = 0;
+                                    int resumeId = 0;
                                     try
                                     {
-                                        enteredID = int.Parse(
-                                            Console.ReadLine() ?? throw new InvalidOperationException());
+                                        resumeId = int.Parse(Console.ReadLine() ?? throw new InvalidOperationException());
                                     }
                                     catch (FormatException)
                                     {
@@ -82,16 +81,49 @@ namespace WassonSudoku
                                         break;
                                     }
 
-                                    if (model.GetPreviousGame(model, enteredID, true))
+                                    if (sudoku.GetPreviousGame(sudoku, resumeId, true))
                                     {
-                                        Console.WriteLine("Resuming Game " + enteredID + "...");
+                                        Console.WriteLine("Resuming Game " + resumeId + "...");
+                                        UpdateView(sudoku.PlayBoard);
+                                        
+                                        while (ReceiveInput(sudoku, controller))
+                                        {
+                                            UpdateView(sudoku.PlayBoard);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("ERROR: Unable to locate requested game. Verify the requested ID.");
                                     }
                                     break;
 
                                 case "3":
-                                    if (model.GetPreviousGame(model, 1, false))
+                                    Console.WriteLine("Enter the ID of the game you wish to restart...");
+                                    int restartId = 0;
+                                    try
+                                    {
+                                        restartId = int.Parse(Console.ReadLine() ?? throw new InvalidOperationException());
+                                    }
+                                    catch (FormatException)
+                                    {
+                                        Console.WriteLine("ERROR: Entry contained non-numeric characters.");
+                                        break;
+                                    }
+                                    catch (InvalidOperationException)
+                                    {
+                                        Console.WriteLine("ERROR: No entry detected.");
+                                        break;
+                                    }
+
+                                    if (sudoku.GetPreviousGame(sudoku, restartId, false))
                                     {
                                         Console.WriteLine("Starting new attempt for game ");
+                                        UpdateView(sudoku.PlayBoard);
+
+                                        while (ReceiveInput(sudoku, controller))
+                                        {
+                                            UpdateView(sudoku.PlayBoard);
+                                        }
                                     }
                                     else
                                     {
@@ -110,6 +142,13 @@ namespace WassonSudoku
                                         if (controller.SetupBoard(difficulty, controller))
                                         {
                                             Console.WriteLine("Creating New Board...");
+                                            sudoku.SaveBoard(sudoku);
+                                            UpdateView(sudoku.PlayBoard);
+
+                                            while (ReceiveInput(sudoku, controller))
+                                            {
+                                                UpdateView(sudoku.PlayBoard);
+                                            }
                                         }
                                     }
                                     catch (FormatException)
@@ -121,6 +160,14 @@ namespace WassonSudoku
                                         Console.WriteLine("ERROR: No entry detected.");
                                     }
 
+                                    break;
+
+                                case "X":
+
+                                    break;
+
+                                default:
+                                    Console.WriteLine("ERROR: Invalid command.");
                                     break;
                             }
                         }
@@ -138,67 +185,12 @@ namespace WassonSudoku
                         Thread.Sleep(2000);
                         break;
                 }
-
-
-
-
-                //switch (input.Substring(0, 1))
-                //{
-                //    case "Y":
-                //        //Yes, controls, difficulty
-                //        Console.WriteLine("Good...");
-                //        //        Thread.Sleep(1000);
-                //        Console.WriteLine("\nHere are your options...");
-                //        //        Thread.Sleep(2000);
-                //        Console.WriteLine("P - Place a number from 1-9 or _ to clear a number. (column#, row#, insert#/_)");
-                //        //        Thread.Sleep(2000);
-                //        Console.WriteLine("H - Get help. (column#, row#)");
-                //        //        Thread.Sleep(2000);
-                //        Console.WriteLine("G - Give up.");
-                //        //        Thread.Sleep(2000);
-                //        Console.WriteLine("N - New game. Same rules.");
-                //        //        Thread.Sleep(2000);
-                //        Console.WriteLine("C - Check your solution.");
-                //        //        Thread.Sleep(2000);
-                //        Console.WriteLine("X - Try to leave.");
-                //        //        Thread.Sleep(2000);
-                //        Console.WriteLine("\n\nRemember your options. I don't repeat myself...\n\n\n\n\n");
-
-                //        Console.WriteLine("How difficult should this be? (1-7)");
-
-                //        string tempInput = Console.ReadLine();
-                //        int difficulty = 0;
-                //        if (!string.IsNullOrEmpty(tempInput))
-                //        {
-                //            difficulty = int.Parse(tempInput.Substring(0, 1));
-                //        }
-
-                //        //        Thread.Sleep(2000);
-                //        Console.WriteLine(controller.SetupBoard(difficulty, controller)
-                //        ? "Your board is here... Let's play...\n\n\n"
-                //        : "Failed to build board...");
-                //        Thread.Sleep(2000);
-                //        return true;
-
-
-                //    case "N":
-                //        //No, exit
-                //        Console.WriteLine("Aww... That's too bad. Next time... maybe.");
-                //        //        Thread.Sleep(2000);
-                //        return false;
-
-                //    default:
-                //        //Invalid response
-                //        Console.WriteLine("Answer the questions correctly...");
-                //        Thread.Sleep(2000);
-                //        break;
-                //}
             }
 
             return false;
         }
 
-        public void ViewBoard(string[,] sudokuBoard)
+        public void UpdateView(string[,] sudokuBoard)
         {
             /*
              * Requires pass of a sudokuBoard to read from.
@@ -250,7 +242,7 @@ namespace WassonSudoku
         public bool ReceiveInput(Model sudokuBoard, Controller controller)
         {
             /*
-             * Requires a model to references solution and play boards.
+             * Requires a sudoku to references solution and play boards.
              * Requires a controller to refer to some methods.
              *
              * Takes user string input and reads first character to determine course of action.
@@ -261,6 +253,14 @@ namespace WassonSudoku
             string input = "";
 
             Thread.Sleep(2000);
+
+            Console.WriteLine("\nActions:\n" +
+                              "P: Place entry (column#, row#, entry)\n" +
+                              "H: Get a hint (column#, row#)\n" +
+                              "G: Give up\n" +
+                              "C: Check your solution\n" +
+                              "X: Stop playing\n\n");
+
             input = Console.ReadLine()?.ToUpper();
             if (string.IsNullOrEmpty(input)) return true;
 
@@ -292,13 +292,19 @@ namespace WassonSudoku
                         pRow = -1;
                     }
 
-                    Console.WriteLine("Entry: ");
-                    var entry = Console.ReadLine()?.Substring(0, 1);
+                    try
+                    {
+                        Console.WriteLine("Entry: ");
+                        var entry = Console.ReadLine()?.Substring(0, 1);
 
-                    Console.WriteLine(controller.UpdateBoard(sudokuBoard, pColumn, pRow, entry)
-                        ? "\nAdded...\n\n\n"
-                        : "\nInvalid Entry...\n\n\n");
-                    Thread.Sleep(2000);
+                        sudokuBoard.UpdateBoard(controller, sudokuBoard, pColumn, pRow, entry);
+
+                        Thread.Sleep(2000);
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("ERROR: Unable to accept entry.");
+                    }
                     break;
 
                 case "H":
@@ -327,7 +333,7 @@ namespace WassonSudoku
                         hRow = 0;
                     }
 
-                    Console.WriteLine(controller.ShowHint(sudokuBoard, hColumn, hRow)
+                    Console.WriteLine(controller.ShowHint(sudokuBoard, controller, hColumn, hRow)
                     ? "\nHint provided...\n\n\n"
                     : "\nNo hints available...\n\n\n");
                     Thread.Sleep(2000);
@@ -335,7 +341,7 @@ namespace WassonSudoku
 
                 case "G":
                     //give up
-                    ViewBoard(sudokuBoard.SolutionBoard);
+                    UpdateView(sudokuBoard.SolutionBoard);
                     return false;
 
                 case "N":
@@ -414,9 +420,5 @@ namespace WassonSudoku
                 }
             }
         }
-
-
-
-
     }
 }

@@ -11,15 +11,10 @@ namespace WassonSudoku
             View comms = new View();
             Controller controller = new Controller(comms, sudokuBoard);
 
-            while (comms.Introduction(controller, sudokuBoard))
-            {
-                controller.UpdateView(sudokuBoard);
 
-                while (comms.ReceiveInput(sudokuBoard, controller))
-                {
-                    controller.UpdateView(sudokuBoard);
-                }
-            }
+
+            comms.Introduction(controller, sudokuBoard);
+
 
         }
 

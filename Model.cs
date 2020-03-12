@@ -11,8 +11,9 @@ namespace WassonSudoku
     class Model
     {
         public int GameId { get; set; }
-        public string[,] SolutionBoard { get; private set; }
-        public string[,] PlayBoard { get; private set; }
+        public string[,] SolutionBoard { get; private set; } = new string[9,9];
+        public string[,] PlayBoard { get; private set; } = new string[9,9];
+        public int Difficulty { get; set; }
         public int Hints { get; set; }
 
 
@@ -129,18 +130,37 @@ namespace WassonSudoku
             return true;
         }
 
-        public bool UpdateBoard(int column, int row, string entry)
+        public bool UpdateBoard(Controller controller, Model sudoku, int column, int row, string entry)
         {
-            /*
-             * Requires x/y coordinates and the entry to insert.
-             * Checks for null or if it is a permanent entry (marked by '*').
-             * Replaces only that square.
-             */
-            if (PlayBoard == null || PlayBoard.Length <= 0) return false;
-            if (PlayBoard[column, row].Contains('*')) return false;
-            
-            PlayBoard[column, row] = entry;
-            return true;
+            var validatedEntry = controller.ValidateEntry(entry);
+            if(validatedEntry != null)
+            {
+                /*
+                 * Requires x/y coordinates and the entry to insert.
+                 * Checks for null or if it is a permanent entry (marked by '*').
+                 * Replaces only that square.
+                 */
+                if (PlayBoard == null || PlayBoard.Length <= 0) return false;
+                if (PlayBoard[column, row].Contains('*'))
+                {
+                    Console.WriteLine("That is a given value. It cannot be replaced.");
+                    return false;
+                }
+
+                try
+                {
+                    var numEntry = int.Parse(entry ?? throw new InvalidOperationException());
+                    PlayBoard[column, row] = validatedEntry;
+                    SaveMove(sudoku, column, row, numEntry);
+                }
+                catch (InvalidOperationException)
+                {
+                    Console.WriteLine("ERROR: Unable to parse entry.");
+                }
+                return true;
+            }
+
+            return false;
         }
 
 
@@ -159,9 +179,9 @@ namespace WassonSudoku
                         for (int rIndex = 0; rIndex < sudoku.SolutionBoard.GetLength(1); rIndex++)
                         {
                             //Iterate over solution board and enter the original entries (isMove = false)
-                            string retrievedEntry = this.GetEntry(gameId, false, cIndex, rIndex).First();
-                            sudoku.SolutionBoard[cIndex, rIndex] = retrievedEntry;
-                            sudoku.PlayBoard[cIndex, rIndex] = retrievedEntry;
+                            string retrievedEntry = GetEntry(gameId, false, cIndex, rIndex).First();
+                            sudoku.SolutionBoard[cIndex, rIndex] = retrievedEntry + "*";
+                            sudoku.PlayBoard[cIndex, rIndex] = retrievedEntry + "*";
                         }
                     }
 
@@ -172,30 +192,44 @@ namespace WassonSudoku
                         sudoku.PlayBoard[emptySquare.ColumnNum, emptySquare.RowNum] = "--";
                     }
 
+                    sudoku.Difficulty = connection.Query<int>($"SELECT difficulty " +
+                                                              $"FROM full_grid " +
+                                                              $"WHERE gridID={gameId}").ToList().First();
 
-
-                    if(isResuming){
+                    if (isResuming){
                         //Change play board squares to most recent entries
                         for (int cIndex = 0; cIndex < sudoku.SolutionBoard.GetLength(0); cIndex++)
                         {
                             for (int rIndex = 0; rIndex < sudoku.SolutionBoard.GetLength(1); rIndex++)
                             {
                                 //Iterate over solution board and enter the original entries (isMove = false)
-                                string retrievedEntry = this.GetEntry(gameId, true, cIndex, rIndex).First();
+                                List<string> retrievedEntry = GetEntry(gameId, true, cIndex, rIndex);
 
-                                if (!string.IsNullOrEmpty(retrievedEntry))
+                                if (retrievedEntry.Count > 0)
                                 {
-                                    sudoku.PlayBoard[cIndex, rIndex] = retrievedEntry;
+                                    sudoku.PlayBoard[cIndex, rIndex] = retrievedEntry.First();
                                 }
                             }
                         }
+
+                        sudoku.Hints = connection.Query<int>($"SELECT hintsRemaining " +
+                                                             $"FROM full_grid " +
+                                                             $"WHERE gridID={gameId}").ToList().First();
+                    }
+                    else
+                    {
+                        sudoku.Hints = 10 - sudoku.Difficulty;
                     }
                 }
-                catch (NullReferenceException)
+                catch (NullReferenceException e)
                 {
+                    Console.WriteLine(e);
                     return false;
                 }
+
+                sudoku.GameId = gameId;
             }
+
             return true;
         }
 
@@ -239,8 +273,8 @@ namespace WassonSudoku
                     //Select rows from the a table according to whether we want moves or the original value
                     var output = connection.Query<string>($"SELECT {(isMove ? "newEntry" : "entryNum")} " +
                                                           $"FROM {(isMove ? "game_moves" : "grid_square")} " +
-                                                          $"WHERE gridID={gameId} AND " +
-                                                          $"{(isMove ? "AND moveNum IN (" + mostRecentMove + ")" : "")}").ToList();
+                                                          $"WHERE gridID={gameId} " +
+                                                          $"AND {(isMove ? "moveNum IN (" + mostRecentMove + ")" : "columnNum=" + column + " AND rowNum=" + row)}").ToList();
 
                     return output;
                 }
@@ -283,7 +317,7 @@ namespace WassonSudoku
                 {
                     try
                     {
-                        int entry = int.Parse(sudoku.SolutionBoard[cIndex, rIndex]);
+                        int entry = int.Parse(sudoku.SolutionBoard[cIndex, rIndex].Substring(0, 1));
 
                         if (!SaveSquare(sudoku, false, cIndex, rIndex, entry))
                         {
@@ -334,9 +368,9 @@ namespace WassonSudoku
                 {
                     int moveNum = 1;
                     //Retrieve number for most recent move
-                    var output = connection.Query<string>($"SELECT MAX(moveNum)" +
-                                                          $"FROM game_moves" +
-                                                          $"WHERE gridID={sudoku.GameId}").ToList();
+                    var output = connection.Query<string>($"SELECT MAX(moveNum) " +
+                                                          $"FROM game_moves " +
+                                                          $"WHERE gridID={sudoku.GameId}")?.ToList();
 
                     //Adjust moveNum if other moves exist
                     if (!string.IsNullOrEmpty(output[0]))
@@ -357,7 +391,7 @@ namespace WassonSudoku
         }
     }
 
-    struct GameInfo
+    internal struct GameInfo
     {
         public string GridId { get; set; }
 
@@ -368,7 +402,7 @@ namespace WassonSudoku
         public string FullInfo => $"{GridId} | {PlayerName} | {Time_Stamp}";
     }
 
-    struct SquareCoord
+    internal struct SquareCoord
     {
         public int ColumnNum { get; set; }
 

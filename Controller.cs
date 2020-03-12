@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using CityDBTest;
 using Dapper;
+using Dapper.Mapper;
 using MySql.Data.MySqlClient;
 
 namespace WassonSudoku
@@ -42,17 +43,40 @@ namespace WassonSudoku
              * O(n)
              */
             var testBoard = new string[9, 9];
-            _model.Hints = 10 - difficulty;
+            _model.Difficulty = difficulty;
+            _model.Hints = 10 - _model.Difficulty;
+
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
+            {
+                try
+                {
+                    var resultIds = connection.Query<int>("SELECT MAX(gridID) " +
+                                                          "FROM full_grid").ToList();
+
+                    if (resultIds.Count > 0)
+                    {
+                        _model.GameId = resultIds.First() + 1;
+                    }
+                    else
+                    {
+                        _model.GameId = 1;
+                    }
+                }
+                catch (ArgumentNullException)
+                {
+                    Console.WriteLine("ERROR: Unable to set valid game ID.");
+                    return false;
+                }
+
+                var output = connection.Query($"INSERT INTO full_grid (gridID, playerID, difficulty, hintsRemaining)" +
+                                              $"VALUES ({_model.GameId}, 1, {_model.Difficulty}, {_model.Hints})");
+            }
+
+
             return _model.SolutionBoardInitializer(controller, testBoard, 0, 0) && _model.PlayBoardInitializer(testBoard, difficulty);
         }
 
-        public bool UpdateBoard(Model sudoku, int column, int row, string entry)
-        {
-            var validatedEntry = ValidateEntry(entry);
-            return validatedEntry != null && sudoku.UpdateBoard(column, row, validatedEntry);
-        }
-
-        private string ValidateEntry(string entry)
+        public string ValidateEntry(string entry)
         {
             try
             {
@@ -78,19 +102,14 @@ namespace WassonSudoku
             }
         }
 
-        public void UpdateView(Model sudoku)
-        {
-            _view.ViewBoard(sudoku.PlayBoard);
-        }
-
-        public bool ShowHint(Model sudokuBoard, int column, int row)
+        public bool ShowHint(Model sudokuBoard, Controller controller, int column, int row)
         {
             try
             {
                 if (sudokuBoard.Hints > 0)
                 {
                     sudokuBoard.Hints--;
-                    if (sudokuBoard.UpdateBoard(column, row, sudokuBoard.SolutionBoard[column, row]))
+                    if (sudokuBoard.UpdateBoard(controller, sudokuBoard, column, row, sudokuBoard.SolutionBoard[column, row]))
                     {
                         return true;
                     }
