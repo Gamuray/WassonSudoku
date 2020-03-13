@@ -139,9 +139,10 @@ namespace WassonSudoku
                                         int difficulty =
                                             int.Parse(Console.ReadLine() ?? throw new InvalidOperationException());
 
-                                        if (controller.SetupBoard(difficulty, controller))
+                                        if (controller.SetupBoard(difficulty, controller, sudoku))
                                         {
                                             Console.WriteLine("Creating New Board...");
+
                                             sudoku.SaveBoard(sudoku);
                                             UpdateView(sudoku.PlayBoard);
 
@@ -358,7 +359,7 @@ namespace WassonSudoku
                         difficulty = int.Parse(nInputDifficulty);
                     }
 
-                    controller.SetupBoard(difficulty, controller);
+                    controller.SetupBoard(difficulty, controller, sudokuBoard);
 
                     //Thread.Sleep(2000);
                     Console.WriteLine("Here's your new board... Do better.");

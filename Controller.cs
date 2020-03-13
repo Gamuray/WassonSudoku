@@ -31,7 +31,7 @@ namespace WassonSudoku
         }
 
 
-        public bool SetupBoard(int difficulty, Controller controller)
+        public bool SetupBoard(int difficulty, Controller controller, Model sudoku)
         {
             /*
              * Creates a blank board.
@@ -43,11 +43,12 @@ namespace WassonSudoku
              * O(n)
              */
             var testBoard = new string[9, 9];
-            _model.Difficulty = difficulty;
-            _model.Hints = 10 - _model.Difficulty;
+            sudoku.Difficulty = difficulty;
+            sudoku.Hints = 10 - sudoku.Difficulty;
 
             using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
             {
+                
                 try
                 {
                     var resultIds = connection.Query<int>("SELECT MAX(gridID) " +
@@ -67,13 +68,11 @@ namespace WassonSudoku
                     Console.WriteLine("ERROR: Unable to set valid game ID.");
                     return false;
                 }
-
-                var output = connection.Query($"INSERT INTO full_grid (gridID, playerID, difficulty, hintsRemaining)" +
-                                              $"VALUES ({_model.GameId}, 1, {_model.Difficulty}, {_model.Hints})");
             }
 
 
-            return _model.SolutionBoardInitializer(controller, testBoard, 0, 0) && _model.PlayBoardInitializer(testBoard, difficulty);
+            
+            return sudoku.SolutionBoardInitializer(controller, testBoard, 0, 0) && sudoku.PlayBoardInitializer(testBoard, difficulty);
         }
 
         public string ValidateEntry(string entry)

@@ -7,6 +7,8 @@ using System.Text;
 using CityDBTest;
 using Dapper;
 using MySql.Data.MySqlClient;
+using Z.BulkOperations;
+using MySqlDataAdapter = MySql.Data.MySqlClient.MySqlDataAdapter;
 
 namespace WassonSudoku
 {
@@ -312,13 +314,13 @@ namespace WassonSudoku
         //Called upon board creation, saves squares to DB
         public bool SaveBoard(Model sudoku)
         {
-            DataTable gridDataTable = new DataTable();
+            DataTable gridDataTable = new DataTable("grid_square");
             gridDataTable.Columns.Add(new DataColumn("gridID", typeof(string)));
             gridDataTable.Columns.Add(new DataColumn("columnNum", typeof(string)));
             gridDataTable.Columns.Add(new DataColumn("rowNum", typeof(string)));
             gridDataTable.Columns.Add(new DataColumn("entryNum", typeof(string)));
 
-            DataTable blankDataTable = new DataTable();
+            DataTable blankDataTable = new DataTable("start_empty");
             blankDataTable.Columns.Add(new DataColumn("gridID", typeof(string)));
             blankDataTable.Columns.Add(new DataColumn("columnNum", typeof(string)));
             blankDataTable.Columns.Add(new DataColumn("rowNum", typeof(string)));
@@ -340,14 +342,22 @@ namespace WassonSudoku
                 }
             }
 
-            using (SqlBulkCopy bulkCopy = new SqlBulkCopy(Helper.ConnectionVal("SudokuCloudDB")))
+            using (MySqlConnection connection = new MySqlConnection(Helper.ConnectionVal("SudokuCloudDB")))
             {
-                bulkCopy.DestinationTableName = "grid_square";
-                bulkCopy.WriteToServer(gridDataTable);
+                connection.Open();
 
-                bulkCopy.DestinationTableName = "start_empty";
-                bulkCopy.WriteToServer(blankDataTable);
+                connection.Query($"INSERT INTO full_grid (gridID, playerID, difficulty, hintsRemaining) VALUES ({sudoku.GameId}, 1, {sudoku.Difficulty}, {sudoku.Hints})");
+
+
+                var bulkGrid = new BulkOperation(connection);
+                bulkGrid.BulkInsert(gridDataTable);
+
+                var bulkBlank = new BulkOperation(connection);
+                bulkBlank.BulkInsert(blankDataTable);
+
+                connection.Close();
             }
+
 
 
 

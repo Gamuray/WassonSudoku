@@ -39,3 +39,7 @@ E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp
 E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\Dapper.Mapper.dll
 E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\Newtonsoft.Json.dll
 E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\Z.Dapper.Plus.dll
+E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\Caliburn.Micro.Platform.Core.dll
+E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\Caliburn.Micro.Platform.dll
+E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\System.Windows.Interactivity.dll
+E:\Program Files\Microsoft Visual Studio\Repos\WassonSudoku\bin\Debug\netcoreapp3.1\Caliburn.Micro.dll

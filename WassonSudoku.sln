@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29806.167
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WassonSudoku", "WassonSudoku.csproj", "{B08D7696-43EA-46EA-9D2D-E56148FCBF8E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WassonSudoku", "WassonSudoku.csproj", "{B08D7696-43EA-46EA-9D2D-E56148FCBF8E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku_WPF", "..\Sudoku_WPF\Sudoku_WPF.csproj", "{C1D9D4FD-DC6E-4512-B087-DA22FF6BC841}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{B08D7696-43EA-46EA-9D2D-E56148FCBF8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B08D7696-43EA-46EA-9D2D-E56148FCBF8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B08D7696-43EA-46EA-9D2D-E56148FCBF8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1D9D4FD-DC6E-4512-B087-DA22FF6BC841}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1D9D4FD-DC6E-4512-B087-DA22FF6BC841}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1D9D4FD-DC6E-4512-B087-DA22FF6BC841}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1D9D4FD-DC6E-4512-B087-DA22FF6BC841}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
