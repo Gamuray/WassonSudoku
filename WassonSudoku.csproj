@@ -18,7 +18,7 @@
     <PackageReference Include="Dapper.Mapper" Version="2.0.0" />
     <PackageReference Include="MySql.Data" Version="8.0.19" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.1" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
     <PackageReference Include="Z.Dapper.Plus" Version="3.0.5" />
   </ItemGroup>
 
